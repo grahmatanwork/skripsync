@@ -21,13 +21,21 @@ export const taskSchema = z.object({
   note: z.string().max(2000),
   url: z.string().max(2000).refine(value => value === '' || z.string().url().safeParse(value).success, 'URL tidak valid'),
 }).strict();
+export const journalSchema = z.object({
+  id: z.string().min(1).max(100),
+  title: z.string().trim().min(1).max(160),
+  date: date.refine(value => value !== ''),
+  mood: z.enum(['tenang', 'lelah', 'cemas', 'bangga', 'semangat']),
+  content: z.string().trim().min(1).max(12000),
+  sealed: z.boolean(),
+}).strict();
 export const sessionSchema = z.object({id:z.number().int().min(1).max(50),advisor:z.string().max(80).default(''),date,material:z.string().max(2000),feedback:z.string().max(4000),followup:z.string().max(4000),prepared:z.boolean(),met:z.boolean(),followed:z.boolean()}).strict();
 export const logSchema = z.object({id:z.string().min(1).max(100),date:date.refine(value=>value!==''),category:z.string().trim().min(1).max(80),text:z.string().trim().min(1).max(2000)}).strict();
 export const resourceSchema = z.object({id:z.string().min(1).max(100),label:z.string().trim().min(1).max(100),type:z.enum(['Drive','Docs','Sheets','Lainnya']),url:z.string().url().max(2000)}).strict();
 export const trackerSchema = z.object({
-  name:z.string().trim().min(1).max(80),project:z.string().trim().min(1).max(160),program:z.string().max(120).default('Film dan Televisi'),studentId:z.string().max(80).default(''),thesisTitle:z.string().max(300).default(''),profilePhoto:z.string().max(750000).refine(value=>value===''||/^data:image\/(jpeg|png|webp);base64,/.test(value),'Foto profil tidak valid').default(''),advisors:z.array(z.string().trim().min(1).max(80)).min(1).max(8).default(['Dosen Pembimbing 1','Dosen Pembimbing 2']),writingWeight:z.number().int().min(0).max(100),reminderDays:z.number().int().min(0).max(30).default(3),resources:z.array(resourceSchema).max(50).default([]),segments:z.array(segmentSchema).min(1).max(30),tasks:z.array(taskSchema).max(2000),sessions:z.array(sessionSchema).min(1).max(50),logs:z.array(logSchema).max(5000),
+  name:z.string().trim().min(1).max(80),project:z.string().trim().min(1).max(160),program:z.string().max(120).default('Film dan Televisi'),studentId:z.string().max(80).default(''),thesisTitle:z.string().max(300).default(''),profilePhoto:z.string().max(750000).refine(value=>value===''||/^data:image\/(jpeg|png|webp);base64,/.test(value),'Foto profil tidak valid').default(''),advisors:z.array(z.string().trim().min(1).max(80)).min(1).max(8).default(['Dosen Pembimbing 1','Dosen Pembimbing 2']),writingWeight:z.number().int().min(0).max(100),reminderDays:z.number().int().min(0).max(30).default(3),resources:z.array(resourceSchema).max(50).default([]),segments:z.array(segmentSchema).min(1).max(30),tasks:z.array(taskSchema).max(2000),sessions:z.array(sessionSchema).min(1).max(50),logs:z.array(logSchema).max(5000),journals:z.array(journalSchema).max(3000).default([]),
 }).strict().superRefine((data, context) => {
-  for (const [field, items] of [['segments',data.segments],['tasks',data.tasks],['sessions',data.sessions],['logs',data.logs],['resources',data.resources]] as const) {
+  for (const [field, items] of [['segments',data.segments],['tasks',data.tasks],['sessions',data.sessions],['logs',data.logs],['resources',data.resources],['journals',data.journals]] as const) {
     if (new Set(items.map(item=>item.id)).size !== items.length) context.addIssue({code:'custom',message:'ID harus unik',path:[field]});
   }
   const segmentIds = new Set(data.segments.map(segment=>segment.id));
@@ -40,6 +48,7 @@ export type Task = z.infer<typeof taskSchema>;
 export type Session = z.infer<typeof sessionSchema>;
 export type Log = z.infer<typeof logSchema>;
 export type Resource = z.infer<typeof resourceSchema>;
+export type Journal = z.infer<typeof journalSchema>;
 export type TrackerData = z.infer<typeof trackerSchema>;
 export type Snapshot = {data:TrackerData;revision:number;updatedAt:string};
 
@@ -53,7 +62,7 @@ export const defaultSegments = (): Segment[] => [
   {id:'bab-5',name:'Bab 5',color:'peach'},
 ];
 
-export function initialTracker():TrackerData{return {name:'Pengguna Skripsync',project:'Tugas Akhir',program:'',studentId:'',thesisTitle:'',profilePhoto:'',advisors:['Dosen Pembimbing 1','Dosen Pembimbing 2'],writingWeight:80,reminderDays:3,resources:[],segments:defaultSegments(),tasks:[],sessions:[{id:1,advisor:'Dosen Pembimbing 1',date:'',material:'',feedback:'',followup:'',prepared:false,met:false,followed:false}],logs:[]};}
+export function initialTracker():TrackerData{return {name:'Pengguna Skripsync',project:'Tugas Akhir',program:'',studentId:'',thesisTitle:'',profilePhoto:'',advisors:['Dosen Pembimbing 1','Dosen Pembimbing 2'],writingWeight:80,reminderDays:3,resources:[],segments:defaultSegments(),tasks:[],sessions:[{id:1,advisor:'Dosen Pembimbing 1',date:'',material:'',feedback:'',followup:'',prepared:false,met:false,followed:false}],logs:[],journals:[]};}
 
 export function migrateTracker(input: unknown): TrackerData {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return trackerSchema.parse(input);
@@ -70,7 +79,7 @@ export function migrateTracker(input: unknown): TrackerData {
     void _chapter;
     return {...task,segmentId:validSegmentIds.has(requestedSegment)?requestedSegment:fallbackSegmentId,url:typeof legacy.url==='string'?legacy.url:''};
   }) : [];
-  return trackerSchema.parse({...raw,segments,tasks});
+  return trackerSchema.parse({...raw,segments,tasks,journals:Array.isArray(raw.journals)?raw.journals:[]});
 }
 
 export function sessionProgress(session:Session){return (session.prepared?30:0)+(session.met?40:0)+(session.followed?30:0);}

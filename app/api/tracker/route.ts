@@ -33,6 +33,7 @@ export async function GET() {
       tasks: (Array.isArray(raw.tasks) ? raw.tasks : []).map((task) => ({ ...(task as object), due: cleanDate((task as { due?: unknown }).due) })),
       sessions: (Array.isArray(raw.sessions) ? raw.sessions : []).map((session) => ({ ...(session as object), date: cleanDate((session as { date?: unknown }).date) })),
       logs: (Array.isArray(raw.logs) ? raw.logs : []).filter((log) => cleanDate((log as { date?: unknown }).date)),
+      journals: (Array.isArray(raw.journals) ? raw.journals : []).filter((entry) => cleanDate((entry as { date?: unknown }).date)),
     };
     const data = migrateTracker(migrated);
     if (JSON.stringify(data) !== JSON.stringify(raw)) {
