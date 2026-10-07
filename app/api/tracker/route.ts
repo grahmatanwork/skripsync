@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { initialTracker, trackerSchema } from '@/lib/tracker';
+import { initialTracker, migrateTracker, trackerSchema } from '@/lib/tracker';
 
 export const dynamic = 'force-dynamic';
 const reply = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -26,15 +26,15 @@ export async function GET() {
     const { data: row, error } = await supabase.from('trackers')
       .select('document, revision, updated_at').eq('user_id', userId).single();
     if (error || !row) throw error ?? new Error('Data tidak ditemukan');
-    const raw = row.document;
+    const raw = row.document as Record<string, unknown>;
     const migrated = {
       ...raw,
       profilePhoto: raw.profilePhoto ?? '',
-      tasks: (raw.tasks ?? []).map((task: { due?: unknown }) => ({ ...task, due: cleanDate(task.due) })),
-      sessions: (raw.sessions ?? []).map((session: { date?: unknown }) => ({ ...session, date: cleanDate(session.date) })),
-      logs: (raw.logs ?? []).filter((log: { date?: unknown }) => cleanDate(log.date)),
+      tasks: (Array.isArray(raw.tasks) ? raw.tasks : []).map((task) => ({ ...(task as object), due: cleanDate((task as { due?: unknown }).due) })),
+      sessions: (Array.isArray(raw.sessions) ? raw.sessions : []).map((session) => ({ ...(session as object), date: cleanDate((session as { date?: unknown }).date) })),
+      logs: (Array.isArray(raw.logs) ? raw.logs : []).filter((log) => cleanDate((log as { date?: unknown }).date)),
     };
-    const data = trackerSchema.parse(migrated);
+    const data = migrateTracker(migrated);
     if (JSON.stringify(data) !== JSON.stringify(raw)) {
       const { data: updated } = await supabase.from('trackers')
         .update({ document: data, revision: row.revision + 1 })
