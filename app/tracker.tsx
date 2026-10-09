@@ -29,33 +29,48 @@ function Blank({title,description,action}:{title:string;description:string;actio
 function ProgressRing({value}:{value:number}){return <div className="progress-ring" style={{'--progress':value+'%'} as CSSProperties} role="img" aria-label={'Progres keseluruhan '+pct(value)}><div><strong>{pct(value)}</strong><span>progres keseluruhan</span></div></div>;}
 function UserAvatar({src,name,className}:{src?:string;name:string;className:string}){return <span className={className}>{src?<img src={src} alt={`Foto profil ${name}`}/>:name.slice(0,1).toUpperCase()}</span>;}
 
-function drawWrappedText(context:CanvasRenderingContext2D,text:string,x:number,y:number,maxWidth:number,lineHeight:number,maxLines:number){
- const words=text.replace(/\s+/g,' ').trim().split(' ');let line='',lines=0;
- for(let index=0;index<words.length;index++){
-  const test=line?line+' '+words[index]:words[index];
-  if(context.measureText(test).width>maxWidth&&line){context.fillText(line,x,y+lines*lineHeight);lines++;line=words[index];if(lines>=maxLines-1){const remaining=[line,...words.slice(index+1)].join(' ');let clipped=remaining;while(context.measureText(clipped+'…').width>maxWidth&&clipped.length>1)clipped=clipped.slice(0,-1);context.fillText(clipped+'…',x,y+lines*lineHeight);return;}}
-  else line=test;
+function wrapCanvasText(context:CanvasRenderingContext2D,text:string,maxWidth:number){
+ const lines:string[]=[];
+ for(const paragraph of text.trim().split(/\n+/)){
+  const words=paragraph.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);let line='';
+  for(const word of words){const test=line?line+' '+word:word;if(line&&context.measureText(test).width>maxWidth){lines.push(line);line=word;}else line=test;}
+  if(line)lines.push(line);
  }
- if(line&&lines<maxLines)context.fillText(line,x,y+lines*lineHeight);
+ return lines;
+}
+function drawCanvasLines(context:CanvasRenderingContext2D,lines:string[],x:number,y:number,lineHeight:number,maxLines:number,maxWidth:number){
+ const visible=lines.slice(0,maxLines);
+ if(lines.length>maxLines&&visible.length){let clipped=visible[visible.length-1];while(context.measureText(clipped+'…').width>maxWidth&&clipped.length>1)clipped=clipped.slice(0,-1);visible[visible.length-1]=clipped.replace(/[\s,.;:!?-]+$/,'')+'…';}
+ visible.forEach((line,index)=>context.fillText(line,x,y+index*lineHeight));
+ return visible.length;
+}
+function drawJournalMark(context:CanvasRenderingContext2D,x:number,y:number,size:number){
+ context.save();context.translate(x,y);context.lineCap='round';context.lineJoin='round';
+ context.strokeStyle='#123e30';context.lineWidth=size*.12;context.beginPath();context.moveTo(size*.67,size*.25);context.bezierCurveTo(size*.54,size*.12,size*.26,size*.14,size*.24,size*.34);context.bezierCurveTo(size*.23,size*.5,size*.46,size*.49,size*.59,size*.57);context.bezierCurveTo(size*.75,size*.68,size*.62,size*.88,size*.42,size*.84);context.bezierCurveTo(size*.31,size*.82,size*.24,size*.76,size*.2,size*.7);context.stroke();
+ context.strokeStyle='#ccff62';context.lineWidth=size*.12;context.beginPath();context.arc(size*.5,size*.52,size*.35,-.65,2.35);context.stroke();
+ context.fillStyle='#ff8d33';context.beginPath();context.arc(size*.82,size*.18,size*.08,0,Math.PI*2);context.fill();context.restore();
 }
 
 async function journalImage(entry:Journal,author:string,story=false){
  const canvas=document.createElement('canvas');canvas.width=story?1080:1400;canvas.height=story?1920:1600;
  const context=canvas.getContext('2d');if(!context)throw new Error('Canvas tidak tersedia.');
- const palette:Record<Journal['mood'],[string,string]>={tenang:['#dcefe8','#b8dfd1'],lelah:['#eee6f7','#d5c5e8'],cemas:['#faeadb','#f1cfae'],bangga:['#e1eaf8','#bfd2ee'],semangat:['#edf5d5','#d8e8a7']};
- const [background,accent]=palette[entry.mood];context.fillStyle=background;context.fillRect(0,0,canvas.width,canvas.height);
- const margin=story?74:82,cardY=story?260:95,cardHeight=story?1380:1405,radius=story?44:36;
- context.shadowColor='rgba(35,55,45,.18)';context.shadowBlur=story?38:26;context.shadowOffsetY=story?22:14;context.fillStyle='#fffdf9';context.beginPath();context.roundRect(margin,cardY,canvas.width-margin*2,cardHeight,radius);context.fill();context.shadowColor='transparent';
- context.fillStyle=accent;context.beginPath();context.roundRect(margin+44,cardY+48,story?330:300,story?58:52,29);context.fill();
- context.fillStyle='#23372e';context.font=`700 ${story?27:25}px Inter, Arial`;context.fillText(moodLabels[entry.mood].toUpperCase(),margin+68,cardY+(story?87:83));
- context.font=`750 ${story?68:62}px Inter, Arial`;drawWrappedText(context,entry.title,margin+52,cardY+(story?205:190),canvas.width-margin*2-104,story?82:74,story?4:3);
- context.fillStyle='#829087';context.font=`500 ${story?27:25}px Inter, Arial`;context.fillText(`${formatDate(entry.date)}  •  ${author}`,margin+54,cardY+(story?535:440));
- context.strokeStyle='#dfe5df';context.lineWidth=2;context.beginPath();context.moveTo(margin+54,cardY+(story?585:488));context.lineTo(canvas.width-margin-54,cardY+(story?585:488));context.stroke();
- context.fillStyle='#34483e';context.font=`450 ${story?34:31}px Inter, Arial`;drawWrappedText(context,entry.content,margin+54,cardY+(story?665:570),canvas.width-margin*2-108,story?54:49,story?16:17);
- context.fillStyle='#244b39';context.font=`800 ${story?35:32}px Inter, Arial`;context.fillText('Skripsync',margin+54,cardY+cardHeight-86);
- context.fillStyle='#728077';context.font=`500 ${story?23:21}px Inter, Arial`;context.fillText('thesis workspace',margin+54,cardY+cardHeight-50);
- if(story){context.fillStyle='#4d6156';context.font='600 24px Inter, Arial';context.textAlign='center';context.fillText('Satu halaman dari perjalanan skripsiku',canvas.width/2,174);context.textAlign='start';}
- const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Gambar belum dapat dibuat.')),'image/jpeg',.94));
+ context.fillStyle='#123e30';context.fillRect(0,0,canvas.width,canvas.height);
+ const margin=story?58:50,cardY=story?58:50,cardHeight=canvas.height-cardY*2,radius=story?52:44,padding=story?58:70;
+ context.fillStyle='#f7f8f2';context.beginPath();context.roundRect(margin,cardY,canvas.width-margin*2,cardHeight,radius);context.fill();
+ const left=margin+padding,right=canvas.width-margin-padding,day=entry.date.slice(-2);
+ context.fillStyle='#102d23';context.font=`800 ${story?52:56}px Inter, Arial`;context.fillText(day,left,cardY+(story?112:122));
+ context.textAlign='right';context.font=`800 ${story?25:27}px Inter, Arial`;context.fillText(formatDate(entry.date).toUpperCase(),right,cardY+(story?105:114));context.textAlign='start';
+ context.strokeStyle='#d9dfd4';context.lineWidth=3;context.beginPath();context.moveTo(left,cardY+(story?140:150));context.lineTo(right,cardY+(story?140:150));context.stroke();
+ context.save();context.fillStyle='#d9dfd4';context.globalAlpha=.58;const dotGap=story?42:48,dotStart=cardY+(story?230:230),dotEnd=cardY+cardHeight-(story?275:235);for(let y=dotStart;y<dotEnd;y+=dotGap)for(let x=left;x<right;x+=dotGap){context.beginPath();context.arc(x,y,story?3.2:3.5,0,Math.PI*2);context.fill();}context.restore();
+ const titleY=cardY+(story?300:300),titleSize=story?70:76,titleLine=story?82:88;
+ context.fillStyle='#102d23';context.font=`800 ${titleSize}px Inter, Arial`;const titleLines=wrapCanvasText(context,entry.title,right-left).slice(0,3);drawCanvasLines(context,titleLines,left,titleY,titleLine,3,right-left);
+ const bodyY=titleY+titleLines.length*titleLine+(story?62:58),footerY=cardY+cardHeight-(story?205:175),bodyLine=story?65:61;
+ context.fillStyle='#ff8d33';context.font=`750 ${story?48:48}px Inter, Arial`;const contentLines=wrapCanvasText(context,entry.content,right-left),maxLines=Math.max(3,Math.floor((footerY-bodyY-35)/bodyLine));drawCanvasLines(context,contentLines,left,bodyY,bodyLine,maxLines,right-left);
+ context.fillStyle='#102d23';context.font=`500 ${story?23:24}px Inter, Arial`;context.fillText('ditulis oleh',left,footerY);
+ context.font=`800 ${story?31:32}px Inter, Arial`;context.fillText(author,left,footerY+(story?42:44));
+ const markSize=story?82:84;drawJournalMark(context,right-markSize,footerY-24,markSize);
+ context.textAlign='right';context.fillStyle='#123e30';context.font=`700 ${story?20:21}px Inter, Arial`;context.fillText('Made in Skripsync',right,footerY+(story?72:74));context.textAlign='start';
+ const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Gambar belum dapat dibuat.')),'image/jpeg',.95));
  return blob;
 }
 
@@ -120,7 +135,7 @@ export default function Tracker(){
  const localAssistantAnswer=(q:string)=>{const lower=q.toLowerCase();let answer='Aku sudah membaca data Skripsync-mu. ';if(lower.includes('prioritas')||lower.includes('kerja'))answer+=nextTask?'Prioritas paling masuk akal sekarang adalah “'+nextTask.name+'” di segmen '+(segmentById.get(nextTask.segmentId)?.name||'Tanpa segmen')+'. Statusnya '+statuses[nextTask.status].toLowerCase()+'.':'Semua tugas yang tercatat sudah selesai.';else if(lower.includes('deadline')||lower.includes('jadwal'))answer+=dueItems[0]?'Agenda terdekat adalah '+dueItems[0].title+' pada '+formatDate(dueItems[0].date)+'.':'Belum ada deadline atau jadwal bimbingan aktif.';else if(lower.includes('progres'))answer+='Progres keseluruhanmu '+pct(m?.total||0)+', dengan '+(m?.done||0)+' dari '+(data?.tasks.length||0)+' tugas selesai dan '+(m?.consultDone||0)+' sesi bimbingan tuntas.';else answer+='Koneksi AI sedang belum tersedia, tetapi aku tetap bisa membantu membaca prioritas, deadline, dan progres yang tersimpan.';return answer;};
  const sendAssistant=async()=>{const q=assistantInput.trim();if(!q||!data||!m||assistantThinking)return;const history=assistantMessages.slice(-10);setAssistantMessages(v=>[...v,{role:'user',text:q}]);setAssistantInput('');setAssistantThinking(true);try{const response=await fetch('/api/asri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,model:assistantModel,history})});const body=await response.json() as {answer?:string;error?:string};if(!response.ok||!body.answer)throw new Error(body.error||'Asri belum dapat menjawab.');setAssistantMessages(v=>[...v,{role:'assistant',text:body.answer!}]);}catch(error){setAssistantMessages(v=>[...v,{role:'assistant',text:localAssistantAnswer(q)}]);toast.error(error instanceof Error?error.message:'Asri belum dapat terhubung.');}finally{setAssistantThinking(false);}};
  const downloadJournalJpg=async(entry:Journal)=>{try{downloadBlob(await journalImage(entry,data?.name||'Pengguna Skripsync'),`skripsync-${entry.date}.jpg`);toast.success('Jurnal diunduh sebagai JPG.');}catch{toast.error('JPG belum dapat dibuat.');}};
- const downloadJournalPdf=async(entry:Journal)=>{try{const [{jsPDF},image]=await Promise.all([import('jspdf'),journalImage(entry,data?.name||'Pengguna Skripsync')]),dataUrl=await blobDataUrl(image);const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[1400,1600],hotfixes:['px_scaling']});pdf.addImage(dataUrl,'JPEG',0,0,1400,1600);pdf.save(`skripsync-${entry.date}.pdf`);toast.success('Jurnal diunduh sebagai PDF.');}catch{toast.error('PDF belum dapat dibuat.');}};
+ const downloadJournalPdf=async(entry:Journal)=>{try{const {jsPDF}=await import('jspdf');const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[1400,1600],hotfixes:['px_scaling']});const author=data?.name||'Pengguna Skripsync';pdf.setFont('helvetica','bold');pdf.setFontSize(48);const titleLines=pdf.splitTextToSize(entry.title,1120) as string[];pdf.setFont('helvetica','normal');pdf.setFontSize(44);const contentLines=pdf.splitTextToSize(entry.content,1120) as string[];const firstStart=430+titleLines.length*62,firstCapacity=Math.max(5,Math.floor((1300-firstStart)/58)),pageCapacity=Math.max(8,Math.floor((1300-340)/58)),totalPages=Math.max(1,1+Math.ceil(Math.max(0,contentLines.length-firstCapacity)/pageCapacity));let offset=0,page=0;do{if(page>0)pdf.addPage([1400,1600],'portrait');pdf.setFillColor(18,62,48);pdf.rect(0,0,1400,1600,'F');pdf.setFillColor(247,248,242);pdf.roundedRect(50,50,1300,1500,44,44,'F');pdf.setFillColor(16,45,35);pdf.setFont('helvetica','bold');pdf.setFontSize(56);pdf.text(entry.date.slice(-2),120,122);pdf.setFontSize(27);pdf.text(formatDate(entry.date).toUpperCase(),1280,114,{align:'right'});pdf.setDrawColor(217,223,212);pdf.setLineWidth(2);pdf.line(120,150,1280,150);pdf.setFillColor(217,223,212);for(let y=230;y<1330;y+=48)for(let x=120;x<1280;x+=48)pdf.circle(x,y,3,'F');pdf.setTextColor(16,45,35);if(page===0){pdf.setFont('helvetica','bold');pdf.setFontSize(76);pdf.text(titleLines,120,300,{lineHeightFactor:1.08});}else{pdf.setFont('helvetica','bold');pdf.setFontSize(32);pdf.text('LANJUTAN',120,275);pdf.setFontSize(52);pdf.text(titleLines.slice(0,2),120,340,{lineHeightFactor:1.08});}const start=page===0?firstStart:360,capacity=page===0?firstCapacity:pageCapacity,chunk=contentLines.slice(offset,offset+capacity);offset+=chunk.length;pdf.setTextColor(255,141,51);pdf.setFont('helvetica','bold');pdf.setFontSize(44);pdf.text(chunk,120,start,{lineHeightFactor:1.32});pdf.setTextColor(16,45,35);pdf.setFont('helvetica','normal');pdf.setFontSize(24);pdf.text('ditulis oleh',120,1400);pdf.setFont('helvetica','bold');pdf.setFontSize(32);pdf.text(author,120,1444);pdf.setFontSize(21);pdf.text('Made in Skripsync',1280,1474,{align:'right'});pdf.setFontSize(20);pdf.text(`${String(page+1).padStart(2,'0')} / ${String(totalPages).padStart(2,'0')}`,1280,1400,{align:'right'});page++;}while(offset<contentLines.length||page===0);pdf.save(`skripsync-${entry.date}.pdf`);toast.success(totalPages>1?`Jurnal diunduh sebagai PDF ${totalPages} halaman.`:'Jurnal diunduh sebagai PDF.');}catch{toast.error('PDF belum dapat dibuat.');}};
  const shareJournal=async(entry:Journal)=>{try{const blob=await journalImage(entry,data?.name||'Pengguna Skripsync',true);const file=new File([blob],`skripsync-story-${entry.date}.jpg`,{type:'image/jpeg'});if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:entry.title,text:'Catatan dari Skripsync',files:[file]});}else{downloadBlob(blob,file.name);toast.success('Story card diunduh. Pilih file ini saat membuat Instagram Story.');}}catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;toast.error('Story card belum dapat dibuat.');}};
  const journalEntries=data?[...data.journals].filter(entry=>(journalMood==='all'||entry.mood===journalMood)&&(!journalSearch.trim()||(entry.title+' '+entry.content).toLowerCase().includes(journalSearch.trim().toLowerCase()))).sort((a,b)=>b.date.localeCompare(a.date)):[];
  const latestJournal=data?[...data.journals].sort((a,b)=>b.date.localeCompare(a.date))[0]:undefined,journalDays=data?new Set(data.journals.map(entry=>entry.date)).size:0,sealedJournals=data?.journals.filter(entry=>entry.sealed).length||0;
