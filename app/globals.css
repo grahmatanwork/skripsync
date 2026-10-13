@@ -294,3 +294,20 @@ h1,h2,h3,strong{letter-spacing:-.025em}
 .gemini-shortcut{display:flex;flex-direction:column}.gemini-shortcut .assistant-visual{margin-bottom:18px}.gemini-info{display:flex;align-items:flex-start;gap:12px;margin:0 18px 18px;padding:16px;border-radius:14px;background:#eef4ea;color:#244f3a}.gemini-info>span{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#ccff62;flex-shrink:0}.gemini-info strong{font-size:.78rem}.gemini-info p{font-size:.68rem;line-height:1.55;color:#65786d;margin-top:3px}.gemini-open{margin:0 18px;min-height:48px;font-weight:800}.gemini-shortcut .assistant-note{margin-top:auto}.assistant-preview p{max-width:470px}
 [data-theme=dark] .brand-tagline{color:#aac5ba!important}[data-theme=dark] .share-progress-button{background:#ccff62!important;color:#143325!important;border-color:#ccff62!important}[data-theme=dark] .empty-session-link{border-color:#435048;color:#c1d0c7}[data-theme=dark] .agenda-card{color:#173126}[data-theme=dark] .agenda-detail>strong{color:#173126}[data-theme=dark] .agenda-detail>span,[data-theme=dark] .agenda-detail .agenda-kind{color:#50675b}[data-theme=dark] .gemini-info{background:#222d26;color:#e8f1ea}[data-theme=dark] .gemini-info p{color:#afbeb4}
 @media(max-width:767px){.share-progress-button{font-size:0!important;width:42px;padding:0!important}.share-progress-button svg{width:18px!important;height:18px!important}.agenda-card{grid-template-columns:52px minmax(0,1fr) 18px;padding:11px 12px;border-radius:15px}.agenda-date{min-height:64px}.agenda-date strong{font-size:1.35rem}.agenda-detail>strong{font-size:.78rem}.upcoming-panel{padding:18px}.gemini-info{margin-inline:14px}.gemini-open{margin-inline:14px}}
+
+/* Sidebar spacing and restrained brand-light navigation. */
+.desktop-sidebar [data-slot=sidebar-content]{overflow-x:hidden!important;padding-bottom:8px}
+.desktop-sidebar .main-nav{width:100%;padding:0 18px!important;box-sizing:border-box;gap:5px}
+.desktop-sidebar .main-nav [data-slot=sidebar-menu-item]{width:100%;min-width:0}
+.desktop-sidebar .nav-item{position:relative;isolation:isolate;overflow:hidden;width:100%!important;max-width:100%;min-width:0;box-sizing:border-box;border:1px solid transparent;border-radius:13px!important;transition:color .22s ease,background .22s ease,border-color .22s ease,box-shadow .22s ease,transform .22s ease}
+.desktop-sidebar .nav-item>*{position:relative;z-index:1}
+.desktop-sidebar .nav-item::before{content:"";position:absolute;z-index:0;inset:-35% auto -35% -55%;width:42%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.52),transparent);transform:skewX(-18deg) translateX(-180%);opacity:0;pointer-events:none}
+.desktop-sidebar .nav-item::after{content:"";position:absolute;z-index:0;right:-18px;top:50%;width:42px;height:42px;border-radius:50%;background:rgba(204,255,98,.6);filter:blur(14px);transform:translateY(-50%) scale(.2);opacity:0;pointer-events:none;transition:transform .3s ease,opacity .3s ease}
+.desktop-sidebar .nav-item:hover{color:#fff!important;background:rgba(255,255,255,.075)!important;border-color:rgba(204,255,98,.24);box-shadow:inset 0 1px rgba(255,255,255,.08),0 0 20px rgba(204,255,98,.1);transform:translateY(-1px)}
+.desktop-sidebar .nav-item:hover::before{animation:nav-shine .62s ease-out both;opacity:1}
+.desktop-sidebar .nav-item:hover::after{transform:translateY(-50%) scale(1);opacity:.42}
+.desktop-sidebar .nav-item[data-active=true]{box-shadow:inset 0 1px rgba(255,255,255,.7),0 7px 18px rgba(4,25,17,.18)}
+.desktop-sidebar .nav-item[data-active=true]:hover{color:#102d23!important;background:#ccff62!important;border-color:#e7ffa9;box-shadow:inset 0 1px rgba(255,255,255,.8),0 8px 22px rgba(204,255,98,.18)}
+.desktop-sidebar .sidebar-bottom{padding-top:10px}
+@keyframes nav-shine{from{transform:skewX(-18deg) translateX(-180%)}to{transform:skewX(-18deg) translateX(520%)}}
+@media(prefers-reduced-motion:reduce){.desktop-sidebar .nav-item,.desktop-sidebar .nav-item::after{transition:none}.desktop-sidebar .nav-item:hover{transform:none}.desktop-sidebar .nav-item:hover::before{animation:none;opacity:0}}
