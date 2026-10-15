@@ -6,7 +6,7 @@ export const metadata: Metadata = {
  description:'Your thesis tracker untuk tugas, bimbingan, kalender, arsip, jurnal, dan progres skripsi.',
  manifest:'/manifest.webmanifest',
  appleWebApp:{capable:true,title:'Skripsync',statusBarStyle:'default'},
- icons:{icon:'/favicon.png',shortcut:'/favicon.png',apple:'/icon-192.png'},
+ icons:{icon:{url:'/favicon.png?v=5',sizes:'96x96',type:'image/png'},shortcut:'/favicon.png?v=5',apple:'/skripsync-icon-color.png'},
 };
 export const viewport: Viewport={themeColor:'#123e30'};
 export default function RootLayout({children}:Readonly<{children:React.ReactNode}>){return <html lang="id"><body>{children}</body></html>;}

@@ -17,6 +17,7 @@ export const taskSchema = z.object({
   segmentId: z.string().min(1).max(100),
   subchapter: z.string().max(150),
   status: z.number().int().min(0).max(4),
+  completedAt: date.default(''),
   due: date,
   note: z.string().max(2000),
   url: z.string().max(2000).refine(value => value === '' || z.string().url().safeParse(value).success, 'URL tidak valid'),
@@ -87,7 +88,7 @@ export function metrics(data:TrackerData){
   const segments=data.segments.map(segment=>{const tasks=data.tasks.filter(task=>task.segmentId===segment.id);return {...segment,count:tasks.length,done:tasks.filter(task=>task.status===4).length,progress:tasks.length?tasks.reduce((value,task)=>value+task.status*25,0)/tasks.length:0};});
   const writing=data.tasks.length?data.tasks.reduce((value,task)=>value+task.status*25,0)/data.tasks.length:0;
   const consultation=data.sessions.length?data.sessions.reduce((value,session)=>value+sessionProgress(session),0)/data.sessions.length:0;
-  return {segments,writing,consultation,total:(writing*data.writingWeight+consultation*(100-data.writingWeight))/100,done:data.tasks.filter(task=>task.status===4).length,started:data.tasks.filter(task=>task.status>0&&task.status<4).length,consultDone:data.sessions.filter(session=>sessionProgress(session)===100).length};
+  return {segments,writing,consultation,total:(writing*data.writingWeight+consultation*(100-data.writingWeight))/100,done:data.tasks.filter(task=>task.status===4).length,completedToday:data.tasks.filter(task=>task.status===4&&task.completedAt===localDate()).length,started:data.tasks.filter(task=>task.status>0&&task.status<4).length,consultDone:data.sessions.filter(session=>sessionProgress(session)===100).length};
 }
 export function localDate(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
 export function formatDate(value:string){return value?new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z')):'Belum dijadwalkan';}
