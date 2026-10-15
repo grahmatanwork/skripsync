@@ -4,6 +4,7 @@ const date = z.string().refine(
   value => value === '' || (/^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value),
   'Tanggal tidak valid',
 );
+const time = z.string().refine(value => value === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(value), 'Jam tidak valid');
 
 export const segmentColors = ['lime', 'mint', 'blue', 'violet', 'peach', 'rose'] as const;
 export const segmentSchema = z.object({
@@ -18,6 +19,7 @@ export const taskSchema = z.object({
   subchapter: z.string().max(150),
   status: z.number().int().min(0).max(4),
   completedAt: date.default(''),
+  completedTime: time.default(''),
   due: date,
   note: z.string().max(2000),
   url: z.string().max(2000).refine(value => value === '' || z.string().url().safeParse(value).success, 'URL tidak valid'),
@@ -91,5 +93,6 @@ export function metrics(data:TrackerData){
   return {segments,writing,consultation,total:(writing*data.writingWeight+consultation*(100-data.writingWeight))/100,done:data.tasks.filter(task=>task.status===4).length,completedToday:data.tasks.filter(task=>task.status===4&&task.completedAt===localDate()).length,started:data.tasks.filter(task=>task.status>0&&task.status<4).length,consultDone:data.sessions.filter(session=>sessionProgress(session)===100).length};
 }
 export function localDate(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+export function localTime(){return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());}
 export function formatDate(value:string){return value?new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z')):'Belum dijadwalkan';}
 export function weeklyLogs(logs:Log[]){const now=new Date(localDate()+'T12:00:00Z');now.setUTCDate(now.getUTCDate()-(now.getUTCDay()+6)%7);return Array.from({length:6},(_,index)=>{const start=new Date(now);start.setUTCDate(start.getUTCDate()-(5-index)*7);const end=new Date(start);end.setUTCDate(end.getUTCDate()+7);const from=start.toISOString().slice(0,10),to=end.toISOString().slice(0,10);return {label:new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',timeZone:'UTC'}).format(start),count:logs.filter(log=>log.date>=from&&log.date<to).length};});}
