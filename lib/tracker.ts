@@ -33,7 +33,20 @@ export const journalSchema = z.object({
   sealed: z.boolean(),
 }).strict();
 export const sessionSchema = z.object({id:z.number().int().min(1).max(50),advisor:z.string().max(80).default(''),date,material:z.string().max(2000),feedback:z.string().max(4000),followup:z.string().max(4000),prepared:z.boolean(),met:z.boolean(),followed:z.boolean()}).strict();
-export const logSchema = z.object({id:z.string().min(1).max(100),date:date.refine(value=>value!==''),category:z.string().trim().min(1).max(80),text:z.string().trim().min(1).max(2000)}).strict();
+export const logSchema = z.object({
+  id:z.string().min(1).max(100),
+  date:date.refine(value=>value!==''),
+  time:time.default(''),
+  category:z.string().trim().min(1).max(80),
+  title:z.string().trim().max(160).default(''),
+  text:z.string().trim().min(1).max(2000),
+  duration:z.string().max(40).default(''),
+  location:z.string().max(80).default(''),
+  focus:z.string().max(100).default(''),
+  progress:z.number().min(0).max(100).default(0),
+  completedTasks:z.number().int().min(0).max(999).default(0),
+  stress:z.number().min(0).max(100).default(0),
+}).strict();
 export const resourceSchema = z.object({id:z.string().min(1).max(100),label:z.string().trim().min(1).max(100),type:z.enum(['Drive','Docs','Sheets','Lainnya']),url:z.string().url().max(2000)}).strict();
 export const trackerSchema = z.object({
   name:z.string().trim().min(1).max(80),project:z.string().trim().min(1).max(160),program:z.string().max(120).default('Film dan Televisi'),studentId:z.string().max(80).default(''),thesisTitle:z.string().max(300).default(''),profilePhoto:z.string().max(750000).refine(value=>value===''||/^data:image\/(jpeg|png|webp);base64,/.test(value),'Foto profil tidak valid').default(''),advisors:z.array(z.string().trim().min(1).max(80)).min(1).max(8).default(['Dosen Pembimbing 1','Dosen Pembimbing 2']),writingWeight:z.number().int().min(0).max(100),reminderDays:z.number().int().min(0).max(30).default(3),resources:z.array(resourceSchema).max(50).default([]),segments:z.array(segmentSchema).min(1).max(30),tasks:z.array(taskSchema).max(2000),sessions:z.array(sessionSchema).max(50),logs:z.array(logSchema).max(5000),journals:z.array(journalSchema).max(3000).default([]),
