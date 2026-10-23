@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, Upload, LoaderCircle, Headphones } from 'lucide-react';
+import { Mic, Square, Upload, LoaderCircle, Headphones, Play, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
@@ -10,6 +10,24 @@ import type { Recording } from '@/lib/tracker';
 const MAX_SIZE = 25 * 1024 * 1024;
 const BUCKET = 'bimbingan-audio';
 const TYPES: Record<string, string> = { 'audio/webm':'webm', 'audio/mp4':'m4a', 'audio/mpeg':'mp3', 'audio/ogg':'ogg', 'audio/wav':'wav', 'audio/x-wav':'wav', 'audio/aac':'aac', 'audio/x-m4a':'m4a' };
+
+const WAVE = [14,20,27,18,11,21,30,23,15,11,23,30,37,26,19,12,23,34,40,27,20,12,19,27,20,13,17,25,34,21,14,23,28,20,13,19,25,15,10,18];
+const formatTime = (seconds: number) => Number.isFinite(seconds) ? `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2,'0')}` : '--:--';
+
+function AudioPlayer({ src, label }: { src: string; label: string }) {
+  const audio = useRef<HTMLAudioElement>(null);
+  const [playing,setPlaying] = useState(false);
+  const [current,setCurrent] = useState(0);
+  const [duration,setDuration] = useState(0);
+  const [failed,setFailed] = useState(false);
+  const progress = duration > 0 ? Math.min(100,current / duration * 100) : 0;
+  return <div className="audio-player">
+    <audio ref={audio} src={src} preload="metadata" onLoadedMetadata={e=>setDuration(Number.isFinite(e.currentTarget.duration)?e.currentTarget.duration:0)} onDurationChange={e=>setDuration(Number.isFinite(e.currentTarget.duration)?e.currentTarget.duration:0)} onTimeUpdate={e=>setCurrent(e.currentTarget.currentTime)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>setPlaying(false)} onError={()=>setFailed(true)}/>
+    <button type="button" className="audio-player-toggle" aria-label={`${playing?'Jeda':'Putar'} ${label}`} disabled={failed} onClick={()=>{const el=audio.current;if(!el)return;if(el.paused)void el.play().catch(()=>setFailed(true));else el.pause();}}>{playing?<Pause size={19} fill="currentColor"/>:<Play size={19} fill="currentColor"/>}</button>
+    <div className="audio-player-wave"><div className="audio-player-bars" aria-hidden="true">{WAVE.map((height,index)=><span key={index} className={index / WAVE.length * 100 < progress?'played':''} style={{height}}/>)}</div><input type="range" min={0} max={duration || 1} step="0.1" value={Math.min(current,duration||1)} disabled={!duration || failed} aria-label={`Posisi pemutaran ${label}`} aria-valuetext={`${formatTime(current)} dari ${formatTime(duration)}`} onChange={e=>{const next=Number(e.target.value);if(audio.current)audio.current.currentTime=next;setCurrent(next);}}/></div>
+    <span className="audio-player-time">{failed?'Tidak dapat diputar':formatTime(duration || current)}</span>
+  </div>;
+}
 
 function Player({ recording }: { recording: Recording }) {
   const [url, setUrl] = useState('');
@@ -21,7 +39,7 @@ function Player({ recording }: { recording: Recording }) {
     });
     return () => { active = false; };
   }, [recording.path]);
-  return <div className="session-audio-item"><div><Headphones size={17}/><strong>{recording.name}</strong><small>{(recording.size / 1048576).toFixed(1)} MB</small></div>{url ? <audio controls preload="none" src={url} aria-label={'Putar ' + recording.name}/> : <small>{problem ? 'Rekaman tidak dapat dibuka. Coba buka ulang sesi.' : 'Menyiapkan rekaman…'}</small>}</div>;
+  return <div className="session-audio-item"><div className="session-audio-meta"><Headphones size={17}/><strong>{recording.name}</strong><small>{(recording.size / 1048576).toFixed(1)} MB</small></div>{url ? <AudioPlayer src={url} label={recording.name}/> : <small>{problem ? 'Rekaman tidak dapat dibuka. Coba buka ulang sesi.' : 'Menyiapkan rekaman…'}</small>}</div>;
 }
 
 export function SessionAudio({ recordings, onAttach, disabled }: { recordings: Recording[]; onAttach: (recording: Recording) => Promise<boolean>; disabled: boolean }) {
@@ -74,5 +92,5 @@ export function SessionAudio({ recordings, onAttach, disabled }: { recordings: R
     finally { if (mounted.current) setBusy(false); }
   }
 
-  return <section className="session-audio"><div className="session-audio-heading"><span><Mic size={19}/></span><div><strong>Rekaman bimbingan</strong><p>Rekam atau unggah audio untuk disimpan bersama sesi ini.</p></div></div><p className="caption">Pastikan semua peserta setuju sebelum merekam. Maksimal 25 MB per file.</p><div className="session-audio-actions">{recording ? <Button type="button" variant="outline" onClick={() => recorder.current?.stop()}><Square size={15}/>Berhenti merekam</Button> : <Button type="button" variant="outline" onClick={() => void start()} disabled={busy || disabled || !!pending}><Mic size={16}/>Mulai rekam</Button>}<label className={'session-audio-upload' + (busy || recording || disabled || !!pending ? ' is-disabled' : '')}><Upload size={16}/>Unggah audio<input type="file" accept="audio/*" disabled={busy || recording || disabled || !!pending} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void saveAudio(file,file.name); }}/></label></div>{recording && <p className="session-recording-status" role="status"><span/>Sedang merekam…</p>}{pending && <div className="session-audio-preview"><strong>Pratinjau rekaman</strong><audio controls src={pendingUrl}/><div><Button type="button" onClick={() => void saveAudio(pending)} disabled={busy || disabled}>{busy ? <LoaderCircle className="spin" size={16}/> : null}Simpan rekaman</Button><Button type="button" variant="ghost" onClick={() => setPending(null)} disabled={busy}>Buang</Button></div></div>}{busy && <p className="caption" role="status">Menyimpan audio, jangan tutup halaman…</p>}{recordings.length > 0 && <div className="session-audio-list">{recordings.map(item => <Player key={item.id} recording={item}/>)}</div>}</section>;
+  return <section className="session-audio"><div className="session-audio-heading"><span><Mic size={19}/></span><div><strong>Rekaman bimbingan</strong><p>Rekam atau unggah audio untuk disimpan bersama sesi ini.</p></div></div><p className="caption">Pastikan semua peserta setuju sebelum merekam. Maksimal 25 MB per file.</p><div className="session-audio-actions">{recording ? <Button type="button" variant="outline" onClick={() => recorder.current?.stop()}><Square size={15}/>Berhenti merekam</Button> : <Button type="button" variant="outline" onClick={() => void start()} disabled={busy || disabled || !!pending}><Mic size={16}/>Mulai rekam</Button>}<label className={'session-audio-upload' + (busy || recording || disabled || !!pending ? ' is-disabled' : '')}><Upload size={16}/>Unggah audio<input type="file" accept="audio/*" disabled={busy || recording || disabled || !!pending} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void saveAudio(file,file.name); }}/></label></div>{recording && <p className="session-recording-status" role="status"><span/>Sedang merekam…</p>}{pending && <div className="session-audio-preview"><strong>Pratinjau rekaman</strong>{pendingUrl && <AudioPlayer src={pendingUrl} label="pratinjau rekaman"/>}<div><Button type="button" onClick={() => void saveAudio(pending)} disabled={busy || disabled}>{busy ? <LoaderCircle className="spin" size={16}/> : null}Simpan rekaman</Button><Button type="button" variant="ghost" onClick={() => setPending(null)} disabled={busy}>Buang</Button></div></div>}{busy && <p className="caption" role="status">Menyimpan audio, jangan tutup halaman…</p>}{recordings.length > 0 && <div className="session-audio-list">{recordings.map(item => <Player key={item.id} recording={item}/>)}</div>}</section>;
 }
