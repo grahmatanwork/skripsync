@@ -32,7 +32,8 @@ export const journalSchema = z.object({
   content: z.string().trim().min(1).max(12000),
   sealed: z.boolean(),
 }).strict();
-export const sessionSchema = z.object({id:z.number().int().min(1).max(50),advisor:z.string().max(80).default(''),date,material:z.string().max(2000),feedback:z.string().max(4000),followup:z.string().max(4000),prepared:z.boolean(),met:z.boolean(),followed:z.boolean()}).strict();
+export const recordingSchema = z.object({id:z.string().uuid(),path:z.string().min(1).max(200),name:z.string().min(1).max(160),createdAt:z.string().datetime(),size:z.number().int().min(1).max(26214400)}).strict();
+export const sessionSchema = z.object({id:z.number().int().min(1).max(50),advisor:z.string().max(80).default(''),date,material:z.string().max(2000),feedback:z.string().max(4000),followup:z.string().max(4000),prepared:z.boolean(),met:z.boolean(),followed:z.boolean(),recordings:z.array(recordingSchema).max(50).optional()}).strict();
 export const logSchema = z.object({
   id:z.string().min(1).max(100),
   date:date.refine(value=>value!==''),
@@ -62,6 +63,7 @@ export type Segment = z.infer<typeof segmentSchema>;
 export type SegmentColor = Segment['color'];
 export type Task = z.infer<typeof taskSchema>;
 export type Session = z.infer<typeof sessionSchema>;
+export type Recording = z.infer<typeof recordingSchema>;
 export type Log = z.infer<typeof logSchema>;
 export type Resource = z.infer<typeof resourceSchema>;
 export type Journal = z.infer<typeof journalSchema>;
