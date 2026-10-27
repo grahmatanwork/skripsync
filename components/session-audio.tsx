@@ -16,13 +16,25 @@ const formatTime = (seconds: number) => Number.isFinite(seconds) ? `${Math.floor
 
 function AudioPlayer({ src, label }: { src: string; label: string }) {
   const audio = useRef<HTMLAudioElement>(null);
+  const probingDuration = useRef(false);
   const [playing,setPlaying] = useState(false);
   const [current,setCurrent] = useState(0);
   const [duration,setDuration] = useState(0);
   const [failed,setFailed] = useState(false);
   const progress = duration > 0 ? Math.min(100,current / duration * 100) : 0;
+  useEffect(()=>{setPlaying(false);setCurrent(0);setDuration(0);setFailed(false);probingDuration.current=false;},[src]);
+  const syncDuration = (element: HTMLAudioElement) => {
+    if (Number.isFinite(element.duration) && element.duration > 0) { setDuration(element.duration); return; }
+    // Some WebM recordings do not expose duration until the browser seeks once.
+    if (!probingDuration.current && element.readyState >= HTMLMediaElement.HAVE_METADATA) { probingDuration.current=true; element.currentTime=1e101; }
+  };
+  const finishDurationProbe = (element: HTMLAudioElement) => {
+    if (!probingDuration.current) return;
+    if (Number.isFinite(element.duration) && element.duration > 0) setDuration(element.duration);
+    element.currentTime=0; probingDuration.current=false;
+  };
   return <div className="audio-player">
-    <audio ref={audio} src={src} preload="metadata" onLoadedMetadata={e=>setDuration(Number.isFinite(e.currentTarget.duration)?e.currentTarget.duration:0)} onDurationChange={e=>setDuration(Number.isFinite(e.currentTarget.duration)?e.currentTarget.duration:0)} onTimeUpdate={e=>setCurrent(e.currentTarget.currentTime)} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>setPlaying(false)} onError={()=>setFailed(true)}/>
+    <audio ref={audio} src={src} preload="metadata" onLoadedMetadata={e=>syncDuration(e.currentTarget)} onDurationChange={e=>syncDuration(e.currentTarget)} onCanPlay={e=>syncDuration(e.currentTarget)} onSeeked={e=>finishDurationProbe(e.currentTarget)} onTimeUpdate={e=>{if(!probingDuration.current)setCurrent(e.currentTarget.currentTime);}} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>setPlaying(false)} onError={()=>setFailed(true)}/>
     <button type="button" className="audio-player-toggle" aria-label={`${playing?'Jeda':'Putar'} ${label}`} disabled={failed} onClick={()=>{const el=audio.current;if(!el)return;if(el.paused)void el.play().catch(()=>setFailed(true));else el.pause();}}>{playing?<Pause size={19} fill="currentColor"/>:<Play size={19} fill="currentColor"/>}</button>
     <div className="audio-player-wave"><div className="audio-player-bars" aria-hidden="true">{WAVE.map((height,index)=><span key={index} className={index / WAVE.length * 100 < progress?'played':''} style={{height}}/>)}</div><input type="range" min={0} max={duration || 1} step="0.1" value={Math.min(current,duration||1)} disabled={!duration || failed} aria-label={`Posisi pemutaran ${label}`} aria-valuetext={`${formatTime(current)} dari ${formatTime(duration)}`} onChange={e=>{const next=Number(e.target.value);if(audio.current)audio.current.currentTime=next;setCurrent(next);}}/></div>
     <span className="audio-player-time">{failed?'Tidak dapat diputar':formatTime(duration || current)}</span>
