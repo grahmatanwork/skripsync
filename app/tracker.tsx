@@ -167,7 +167,8 @@ export default function Tracker({preview=false,initialSnapshot}:{preview?:boolea
  const nextTask=data?.tasks.find(t=>t.status>0&&t.status<4)||data?.tasks.find(t=>t.status===0);
  const dueItems=data?[...data.tasks.filter(t=>t.due&&t.status<4).map(t=>({date:t.due,title:t.name,type:'Tugas'})),...data.sessions.filter(s=>s.date&&sessionProgress(s)<100).map(s=>({date:s.date,title:'Bimbingan '+s.id+' · '+s.advisor,type:'Bimbingan'}))].sort((a,b)=>a.date.localeCompare(b.date)):[];
  const manualTasks=data?.tasks.filter(task=>segmentFilter==='all'||task.segmentId===segmentFilter)||[];
- const visibleTasks=taskSort==='deadline'?[...manualTasks].sort((a,b)=>{if(a.status===4&&b.status!==4)return 1;if(b.status===4&&a.status!==4)return -1;if(!a.due&&b.due)return 1;if(!b.due&&a.due)return -1;return a.due.localeCompare(b.due);}):manualTasks;
+ const completedNewest=(a:Task,b:Task)=>`${b.completedAt||''} ${b.completedTime||''}`.localeCompare(`${a.completedAt||''} ${a.completedTime||''}`);
+ const visibleTasks=taskSort==='deadline'?[...manualTasks].sort((a,b)=>{if(a.status===4&&b.status!==4)return 1;if(b.status===4&&a.status!==4)return -1;if(a.status===4&&b.status===4)return completedNewest(a,b);if(!a.due&&b.due)return 1;if(!b.due&&a.due)return -1;return a.due.localeCompare(b.due);}):[...manualTasks.filter(task=>task.status!==4),...manualTasks.filter(task=>task.status===4).sort(completedNewest)];
  const segmentById=new Map((data?.segments||[]).map(segment=>[segment.id,segment]));
  const allVisibleSelected=visibleTasks.length>0&&visibleTasks.every(t=>selectedTaskIds.has(t.id));
  const toggleTask=(id:string,checked:boolean)=>setSelectedTaskIds(current=>{const next=new Set(current);if(checked)next.add(id);else next.delete(id);return next;});
