@@ -558,3 +558,7 @@ h1,h2,h3,strong{letter-spacing:-.025em}
 
 /* Audio-recording alignment and desktop navigation motion. */
 .editor-form .session-audio-heading{display:flex;justify-content:center;align-items:center;text-align:center}.editor-form .session-audio-heading strong{display:block;width:100%}.editor-form .session-record-center{align-items:center;text-align:center}.editor-form label.session-audio-upload{display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:8px!important;width:auto!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important;line-height:1!important}.editor-form label.session-audio-upload svg{flex:none}.editor-form .session-recording-status{justify-content:center;align-items:center;text-align:center}.editor-form .session-audio-preview>strong{display:block;text-align:center}.desktop-sidebar .nav-item:hover{z-index:2;transform:translateX(4px) scale(1.028)}.desktop-sidebar .nav-item[data-active=true]:hover{transform:translateX(4px) scale(1.028)}
+
+
+/* Bimbingan drafts save quietly after the user pauses typing. */
+.session-autosave{order:4;display:flex;align-items:center;justify-content:flex-end;gap:6px;width:100%;min-height:18px;font-size:.72rem;font-weight:650;color:var(--muted-foreground)}.session-autosave.idle{display:none}.session-autosave.saving,.session-autosave.pending{color:#66855f}.session-autosave.saved{color:#43785a}.session-autosave.error{color:#a15f4f}
