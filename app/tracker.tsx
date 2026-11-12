@@ -59,22 +59,24 @@ function wrapCanvasText(context:CanvasRenderingContext2D,text:string,maxWidth:nu
 }
 
 function wrapSessionNoteText(context:CanvasRenderingContext2D,text:string,maxWidth:number){
- const lines:Array<{text:string;indent:number}>=[];
- const bulletIndent=30;
- for(const rawParagraph of text.replace(/\r/g,'').split('\n')){
-  const paragraph=rawParagraph.trim();
-  if(!paragraph){if(lines.length&&lines[lines.length-1].text)lines.push({text:'',indent:0});continue;}
-  const bullet=paragraph.match(/^([-–—•])\s*(.*)$/);
-  const marker=bullet?bullet[1]:'',words=(bullet?bullet[2]:paragraph).replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
-  if(!words.length){lines.push({text:marker,indent:0});continue;}
-  let line=marker,firstLine=true;
-  for(const word of words){
-   const indent=firstLine?0:(bullet?bulletIndent:0),separator=line&&line!==marker?' ':'',candidate=line+separator+word;
-   if(line&&line!==marker&&context.measureText(candidate).width>maxWidth-indent){lines.push({text:line,indent});line=word;firstLine=false;}else line=candidate;
+ const lines:Array<{text:string;indent:number;bullet:boolean}>=[];
+ const bulletIndent=34;
+ const sourceLines=text.replace(/\r/g,'').split('\n');
+ for(const rawLine of sourceLines){
+  const clean=rawLine.trim().replace(/^[-–—•]\s*/,'');
+  if(!clean)continue;
+  const sentences=clean.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)||[clean];
+  for(const sentence of sentences){
+   const words=sentence.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+   if(!words.length)continue;
+   let line='',firstLine=true;
+   for(const word of words){
+    const candidate=line?line+' '+word:word;
+    if(line&&context.measureText(candidate).width>maxWidth-bulletIndent){lines.push({text:line,indent:bulletIndent,bullet:firstLine});line=word;firstLine=false;}else line=candidate;
+   }
+   if(line)lines.push({text:line,indent:bulletIndent,bullet:firstLine});
   }
-  if(line)lines.push({text:line,indent:firstLine?0:(bullet?bulletIndent:0)});
  }
- while(lines.length&&lines[lines.length-1].text==='')lines.pop();
  return lines;
 }
 
@@ -157,7 +159,7 @@ async function sessionNoteImage(session:Session,author:string){
  let y=top+392;
  for(const item of layout.items){
   context.fillStyle=forest;context.font='800 17px "Inter Variable", Inter, Arial';drawTrackedText(context,item.label,contentLeft,y,1.55);
-  context.fillStyle=ink;context.font=`500 ${layout.fontSize}px "Inter Variable", Inter, Arial`;item.lines.forEach((entry,index)=>context.fillText(entry.text,contentLeft+entry.indent,y+44+index*layout.lineHeight));
+  context.fillStyle=ink;context.font=`500 ${layout.fontSize}px "Inter Variable", Inter, Arial`;item.lines.forEach((entry,index)=>{const baseline=y+44+index*layout.lineHeight;if(entry.bullet){context.save();context.strokeStyle=forest;context.lineWidth=3;context.beginPath();context.arc(contentLeft+10,baseline-layout.fontSize*.34,7,0,Math.PI*2);context.stroke();context.restore();}context.fillText(entry.text,contentLeft+entry.indent,baseline);});
   y+=item.height;context.strokeStyle=line;context.lineWidth=2;context.beginPath();context.moveTo(contentLeft,y-18);context.lineTo(right-66,y-18);context.stroke();y+=4;
  }
  const footerY=bottom-58;context.fillStyle=muted;context.font='700 18px "Inter Variable", Inter, Arial';context.fillText('FILE #'+String(session.id).padStart(4,'0'),contentLeft,footerY);
