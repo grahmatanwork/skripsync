@@ -57,6 +57,27 @@ function wrapCanvasText(context:CanvasRenderingContext2D,text:string,maxWidth:nu
  }
  return lines;
 }
+
+function wrapSessionNoteText(context:CanvasRenderingContext2D,text:string,maxWidth:number){
+ const lines:Array<{text:string;indent:number}>=[];
+ const bulletIndent=30;
+ for(const rawParagraph of text.replace(/\r/g,'').split('\n')){
+  const paragraph=rawParagraph.trim();
+  if(!paragraph){if(lines.length&&lines[lines.length-1].text)lines.push({text:'',indent:0});continue;}
+  const bullet=paragraph.match(/^([-–—•])\s*(.*)$/);
+  const marker=bullet?bullet[1]:'',words=(bullet?bullet[2]:paragraph).replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+  if(!words.length){lines.push({text:marker,indent:0});continue;}
+  let line=marker,firstLine=true;
+  for(const word of words){
+   const indent=firstLine?0:(bullet?bulletIndent:0),separator=line&&line!==marker?' ':'',candidate=line+separator+word;
+   if(line&&line!==marker&&context.measureText(candidate).width>maxWidth-indent){lines.push({text:line,indent});line=word;firstLine=false;}else line=candidate;
+  }
+  if(line)lines.push({text:line,indent:firstLine?0:(bullet?bulletIndent:0)});
+ }
+ while(lines.length&&lines[lines.length-1].text==='')lines.pop();
+ return lines;
+}
+
 function drawCanvasLines(context:CanvasRenderingContext2D,lines:string[],x:number,y:number,lineHeight:number,maxLines:number,maxWidth:number){
  const visible=lines.slice(0,maxLines);
  if(lines.length>maxLines&&visible.length){let clipped=visible[visible.length-1];while(context.measureText(clipped+'…').width>maxWidth&&clipped.length>1)clipped=clipped.slice(0,-1);visible[visible.length-1]=clipped.replace(/[\s,.;:!?-]+$/,'')+'…';}
@@ -119,7 +140,7 @@ async function sessionNoteImage(session:Session,author:string){
  const width=canvas.width,forest='#163e31',grid='#66745f',paper='#fbfaed',ink='#14372d',muted='#657368',accent='#f6df9d',line='#dce1d5';
  const left=96,top=112,cardWidth=848,right=left+cardWidth,contentLeft=left+66,contentWidth=cardWidth-132;
  const sections=[{label:'MATERI YANG DIBAWA',text:session.material.trim()||'Belum ada materi yang dicatat.'},{label:'CATATAN & MASUKAN DOSEN',text:session.feedback.trim()||'Belum ada masukan yang dicatat.'},{label:'TINDAK LANJUT',text:session.followup.trim()||'Belum ada tindak lanjut yang dicatat.'}];
- const measure=(fontSize:number)=>{const lineHeight=Math.round(fontSize*1.46);context.font=`500 ${fontSize}px "Inter Variable", Inter, Arial`;let total=0;const items=sections.map(section=>{const lines=wrapCanvasText(context,section.text,contentWidth);const height=34+22+lines.length*lineHeight+38;total+=height;return {...section,lines,height};});return {fontSize,lineHeight,total,items};};
+ const measure=(fontSize:number)=>{const lineHeight=Math.round(fontSize*1.46);context.font=`500 ${fontSize}px "Inter Variable", Inter, Arial`;let total=0;const items=sections.map(section=>{const lines=wrapSessionNoteText(context,section.text,contentWidth);const height=34+22+lines.length*lineHeight+38;total+=height;return {...section,lines,height};});return {fontSize,lineHeight,total,items};};
  let layout=measure(32);while(layout.fontSize>18&&500+layout.total+158>1300)layout=measure(layout.fontSize-1);
  const canvasHeight=Math.max(1440,500+layout.total+158+92);canvas.height=canvasHeight;
  const bottom=canvasHeight-92,cardHeight=bottom-top;
@@ -136,7 +157,7 @@ async function sessionNoteImage(session:Session,author:string){
  let y=top+392;
  for(const item of layout.items){
   context.fillStyle=forest;context.font='800 17px "Inter Variable", Inter, Arial';drawTrackedText(context,item.label,contentLeft,y,1.55);
-  context.fillStyle=ink;context.font=`500 ${layout.fontSize}px "Inter Variable", Inter, Arial`;item.lines.forEach((entry,index)=>context.fillText(entry,contentLeft,y+44+index*layout.lineHeight));
+  context.fillStyle=ink;context.font=`500 ${layout.fontSize}px "Inter Variable", Inter, Arial`;item.lines.forEach((entry,index)=>context.fillText(entry.text,contentLeft+entry.indent,y+44+index*layout.lineHeight));
   y+=item.height;context.strokeStyle=line;context.lineWidth=2;context.beginPath();context.moveTo(contentLeft,y-18);context.lineTo(right-66,y-18);context.stroke();y+=4;
  }
  const footerY=bottom-58;context.fillStyle=muted;context.font='700 18px "Inter Variable", Inter, Arial';context.fillText('FILE #'+String(session.id).padStart(4,'0'),contentLeft,footerY);
