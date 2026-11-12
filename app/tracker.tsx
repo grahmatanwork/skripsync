@@ -116,36 +116,34 @@ async function progressImage(data:TrackerData,draft:ProgressShareDraft,dateValue
 async function sessionNoteImage(session:Session,author:string){
  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1440;
  const context=canvas.getContext('2d');if(!context)throw new Error('Canvas tidak tersedia.');
- const width=canvas.width,height=canvas.height,forest='#0d4939',deep='#08382c',paper='#faf6eb',ink='#173b31',muted='#66796e',lime='#c8ff58',line='#d9e0d3';
- const background=context.createLinearGradient(0,0,width,height);background.addColorStop(0,'#155b47');background.addColorStop(1,deep);context.fillStyle=background;context.fillRect(0,0,width,height);
- context.fillStyle='rgba(255,255,255,.035)';for(let i=0;i<180;i++){const x=(i*137)%width,y=(i*263)%height;context.fillRect(x,y,2+(i%3),2+(i%2));}
- const left=84,top=86,right=996,bottom=1354,cardWidth=right-left;
- context.save();context.shadowColor='rgba(0,18,12,.34)';context.shadowBlur=38;context.shadowOffsetY=20;context.fillStyle=paper;context.beginPath();context.roundRect(left,top,cardWidth,bottom-top,36);context.fill();context.restore();
- context.fillStyle='rgba(7,81,63,.055)';for(let y=top+38;y<bottom-34;y+=42){context.fillRect(left+42,y,cardWidth-84,1);}
- context.strokeStyle='rgba(151,72,53,.32)';context.lineWidth=2;context.beginPath();context.moveTo(left+106,top+38);context.lineTo(left+106,bottom-38);context.stroke();
- context.fillStyle=forest;context.beginPath();context.roundRect(left+48,top+44,244,48,24);context.fill();context.fillStyle=lime;context.font='800 17px "Inter Variable", Inter, Arial';drawTrackedText(context,'SKRIPSYNC NOTE',left+73,top+75,1.6);
- context.fillStyle=ink;context.font='900 50px "Inter Variable", Inter, Arial';context.fillText('Catatan Bimbingan',left+142,top+178);
- context.fillStyle=muted;context.font='700 20px "Inter Variable", Inter, Arial';drawTrackedText(context,'RINGKASAN SESI AKADEMIK',left+144,top+216,2.2);
- context.fillStyle=forest;context.beginPath();context.arc(left+86,top+183,25,0,Math.PI*2);context.fill();context.fillStyle=lime;context.font='900 26px "Inter Variable", Inter, Arial';context.textAlign='center';context.fillText(String(session.id).padStart(2,'0'),left+86,top+192);context.textAlign='left';
- context.fillStyle=ink;context.font='800 27px "Inter Variable", Inter, Arial';context.fillText('Bimbingan '+session.id,left+56,top+296);
- context.fillStyle=muted;context.font='600 21px "Inter Variable", Inter, Arial';context.fillText(formatDate(session.date),left+56,top+332);context.fillText(session.advisor||'Dosen pembimbing',left+56,top+366);
- context.fillStyle='rgba(7,81,63,.1)';context.fillRect(left+56,top+398,cardWidth-112,2);
- const sections:[string,string,number][]=[['MATERI YANG DIBAWA',session.material,2],['CATATAN & MASUKAN DOSEN',session.feedback,5],['TINDAK LANJUT',session.followup,3]];
- let y=top+462;
- for(const [label,content,maxLines] of sections){
-  context.fillStyle=forest;context.font='800 18px "Inter Variable", Inter, Arial';drawTrackedText(context,label,left+56,y,1.7);
-  context.fillStyle=ink;context.font='600 31px "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive';
-  const lines=wrapCanvasText(context,content.trim()||'Belum ada catatan.',cardWidth-128);
-  const visible=drawCanvasLines(context,lines,left+56,y+48,44,maxLines,cardWidth-128);
-  y+=82+Math.max(1,visible)*44;
-  context.strokeStyle=line;context.lineWidth=2;context.beginPath();context.moveTo(left+56,y-16);context.lineTo(right-56,y-16);context.stroke();y+=20;
+ const width=canvas.width,forest='#163e31',grid='#66745f',paper='#fbfaed',ink='#14372d',muted='#657368',accent='#f6df9d',line='#dce1d5';
+ const left=96,top=112,cardWidth=848,right=left+cardWidth,contentLeft=left+66,contentWidth=cardWidth-132;
+ const sections=[{label:'MATERI YANG DIBAWA',text:session.material.trim()||'Belum ada materi yang dicatat.'},{label:'CATATAN & MASUKAN DOSEN',text:session.feedback.trim()||'Belum ada masukan yang dicatat.'},{label:'TINDAK LANJUT',text:session.followup.trim()||'Belum ada tindak lanjut yang dicatat.'}];
+ const measure=(fontSize:number)=>{const lineHeight=Math.round(fontSize*1.46);context.font=`500 ${fontSize}px "Inter Variable", Inter, Arial`;let total=0;const items=sections.map(section=>{const lines=wrapCanvasText(context,section.text,contentWidth);const height=34+22+lines.length*lineHeight+38;total+=height;return {...section,lines,height};});return {fontSize,lineHeight,total,items};};
+ let layout=measure(32);while(layout.fontSize>18&&500+layout.total+158>1300)layout=measure(layout.fontSize-1);
+ const canvasHeight=Math.max(1440,500+layout.total+158+92);canvas.height=canvasHeight;
+ const bottom=canvasHeight-92,cardHeight=bottom-top;
+ const background=context.createLinearGradient(0,0,width,canvasHeight);background.addColorStop(0,'#394839');background.addColorStop(1,'#26352b');context.fillStyle=background;context.fillRect(0,0,width,canvasHeight);
+ context.strokeStyle='rgba(210,222,197,.16)';context.lineWidth=1;for(let x=-20;x<width;x+=54){context.beginPath();context.moveTo(x,0);context.lineTo(x,canvasHeight);context.stroke();}for(let y=-20;y<canvasHeight;y+=54){context.beginPath();context.moveTo(0,y);context.lineTo(width,y);context.stroke();}
+ const tabs=['SESI '+String(session.id).padStart(2,'0'),'CATATAN','TINDAK LANJUT'];tabs.forEach((label,index)=>{const tabY=top+112+index*178;context.save();context.shadowColor='rgba(5,20,13,.25)';context.shadowBlur=16;context.shadowOffsetY=8;context.fillStyle='#e9e9d7';context.beginPath();context.roundRect(right-25,tabY,126,136,0);context.fill();context.restore();context.save();context.translate(right+64,tabY+68);context.rotate(Math.PI/2);context.fillStyle=ink;context.font='800 16px "Inter Variable", Inter, Arial';context.textAlign='center';context.fillText(label,0,0);context.restore();});
+ context.save();context.shadowColor='rgba(4,20,13,.34)';context.shadowBlur=36;context.shadowOffsetY=20;context.fillStyle=paper;context.beginPath();context.roundRect(left,top,cardWidth,cardHeight,38);context.fill();context.restore();
+ context.fillStyle='rgba(20,55,45,.06)';for(let y=top+42;y<bottom-42;y+=42)context.fillRect(left+40,y,cardWidth-80,1);
+ context.fillStyle=ink;context.font='800 19px "Inter Variable", Inter, Arial';drawTrackedText(context,'SKRIPSYNC / BIMBINGAN',contentLeft,top+70,1.5);
+ context.fillStyle=accent;context.fillRect(contentLeft,top+108,444,64);context.fillStyle=ink;context.font='900 40px "Inter Variable", Inter, Arial';context.fillText('Bimbingan '+session.id,contentLeft+16,top+153);
+ context.fillStyle=muted;context.font='600 22px "Inter Variable", Inter, Arial';context.fillText(formatDate(session.date),contentLeft,top+213);
+ context.font='700 24px "Inter Variable", Inter, Arial';const advisorLines=wrapCanvasText(context,session.advisor||'Dosen pembimbing',contentWidth);advisorLines.slice(0,2).forEach((item,index)=>context.fillText(item,contentLeft,top+258+index*31));
+ const dividerY=top+335;context.strokeStyle=line;context.lineWidth=2;context.beginPath();context.moveTo(contentLeft,dividerY);context.lineTo(right-66,dividerY);context.stroke();
+ let y=top+392;
+ for(const item of layout.items){
+  context.fillStyle=forest;context.font='800 17px "Inter Variable", Inter, Arial';drawTrackedText(context,item.label,contentLeft,y,1.55);
+  context.fillStyle=ink;context.font=`500 ${layout.fontSize}px "Inter Variable", Inter, Arial`;item.lines.forEach((entry,index)=>context.fillText(entry,contentLeft,y+44+index*layout.lineHeight));
+  y+=item.height;context.strokeStyle=line;context.lineWidth=2;context.beginPath();context.moveTo(contentLeft,y-18);context.lineTo(right-66,y-18);context.stroke();y+=4;
  }
- context.fillStyle=forest;context.beginPath();context.roundRect(left+56,bottom-126,cardWidth-112,70,18);context.fill();
- context.fillStyle='rgba(255,255,255,.76)';context.font='700 18px "Inter Variable", Inter, Arial';context.fillText('DISIAPKAN OLEH',left+80,bottom-94);
- context.fillStyle=lime;context.font='800 22px "Segoe Print", "Bradley Hand", cursive';context.fillText(author,left+80,bottom-67);
- context.fillStyle='rgba(255,255,255,.66)';context.font='600 16px "Inter Variable", Inter, Arial';context.textAlign='right';context.fillText('Simpan, refleksikan, lanjutkan.',right-80,bottom-67);context.textAlign='left';
+ const footerY=bottom-58;context.fillStyle=muted;context.font='700 18px "Inter Variable", Inter, Arial';context.fillText('FILE #'+String(session.id).padStart(4,'0'),contentLeft,footerY);
+ context.textAlign='right';context.fillText('Dicatat oleh '+author,right-66,footerY);context.textAlign='left';
  return canvasBlob(canvas,'image/png');
 }
+
 
 function downloadBlob(blob:Blob,name:string){const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function blobDataUrl(blob:Blob){return new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result):reject(new Error('File belum dapat dibaca.'));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob);});}
