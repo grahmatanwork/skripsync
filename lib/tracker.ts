@@ -149,7 +149,8 @@ export function migrateTracker(input: unknown): TrackerData {
     void _chapter;
     return {...task,segmentId:validSegmentIds.has(requestedSegment)?requestedSegment:fallbackSegmentId,url:typeof legacy.url==='string'?legacy.url:''};
   }) : [];
-  return trackerSchema.parse({...raw,segments,tasks,sessions:Array.isArray(raw.sessions)?raw.sessions:[],journals:Array.isArray(raw.journals)?raw.journals:[]});
+  const parsed=trackerSchema.parse({...raw,segments,tasks,sessions:Array.isArray(raw.sessions)?raw.sessions:[],journals:Array.isArray(raw.journals)?raw.journals:[]});
+  return {...parsed,sessions:[...parsed.sessions].sort((a,b)=>a.id-b.id).map((session,index)=>({...session,id:index+1}))};
 }
 
 export function sessionProgress(session:Session){return (session.prepared?30:0)+(session.met?40:0)+(session.followed?30:0);}
