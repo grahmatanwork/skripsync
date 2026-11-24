@@ -241,10 +241,10 @@ h1,h2,h3,strong{letter-spacing:-.025em}
 .journal-reader-body dl>div{min-width:0}.journal-reader-body dt{font-size:.64rem;color:#98a39c;margin-bottom:7px}.journal-reader-body dd{margin:0;display:flex;align-items:center;gap:8px;color:#43584d;font-size:.76rem;font-weight:650;min-height:27px;overflow-wrap:anywhere}
 .journal-author-avatar{display:grid;place-items:center;width:27px;height:27px;border-radius:50%;overflow:hidden;background:#dcebdc;color:#315843;font-size:.68rem}.journal-author-avatar img{width:100%;height:100%;object-fit:cover}
 .journal-reader-content{white-space:pre-wrap;color:#374b41;font-size:1rem;line-height:1.9;padding-top:34px;overflow-wrap:anywhere}
-.journal-reader-actions{padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #e1e8de;background:#fff;display:grid;grid-template-columns:1fr 1fr 1.35fr;gap:9px}
+.journal-reader-actions{padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #e1e8de;background:#fff;display:grid;grid-template-columns:1.1fr 1fr 1fr 1.35fr;gap:9px}
 .journal-reader-actions>button{display:flex;align-items:center;gap:10px;text-align:left;padding:11px 13px;border:1px solid #dce5d8;border-radius:12px;color:#365346;min-width:0}
 .journal-reader-actions>button:hover{background:#f1f6ed}.journal-reader-actions>button>span{display:grid;min-width:0}.journal-reader-actions strong{font-size:.74rem}.journal-reader-actions small{font-size:.59rem;color:#87958d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.journal-reader-actions .share-story-action{background:#173f31;color:#fff;border-color:#173f31}.journal-reader-actions .share-story-action small{color:#cfe1d8}
+.journal-reader-actions .journal-edit-action{background:#edf7e9;border-color:#bfdbb9;color:#20543d}.journal-reader-actions .journal-edit-action small{color:#6c9079}.journal-reader-actions .share-story-action{background:#173f31;color:#fff;border-color:#173f31}.journal-reader-actions .share-story-action small{color:#cfe1d8}
 
 .assistant-model-switch{margin:14px 18px 0;padding:4px;display:grid;grid-template-columns:1fr 1fr;gap:4px;border-radius:13px;background:#e9efe6}
 .assistant-model-switch button{display:flex;align-items:baseline;justify-content:center;gap:7px;min-height:42px;border-radius:10px;color:#61736a}
